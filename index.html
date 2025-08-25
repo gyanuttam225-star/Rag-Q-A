@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PDF Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; margin-bottom: 10px; }
+    .user { color: blue; margin-bottom: 5px; }
+    .bot { color: green; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Chat with your PDF</h2>
+
+  <h3>Upload PDF</h3>
+  <input type="file" id="pdfFile" />
+  <button onclick="uploadPdf()">Upload</button>
+  <p id="uploadStatus"></p>
+
+  <h3>Chat</h3>
+  <div id="chat-box"></div>
+  <input type="text" id="query" placeholder="Ask a question..." />
+  <button onclick="sendQuery()">Send</button>
+
+  <script>
+    const API_URL = "https://your-deployment-url.com"; // update after deploy
+
+    async function uploadPdf() {
+      const fileInput = document.getElementById("pdfFile");
+      if (!fileInput.files.length) return alert("Select a file first");
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      let res = await fetch(`${API_URL}/upload_pdf/`, {
+        method: "POST",
+        body: formData
+      });
+      let data = await res.json();
+      document.getElementById("uploadStatus").innerText = data.message;
+    }
+
+    async function sendQuery() {
+      const query = document.getElementById("query").value;
+      if (!query) return;
+
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML += `<div class="user">You: ${query}</div>`;
+
+      const formData = new FormData();
+      formData.append("query", query);
+
+      let res = await fetch(`${API_URL}/chat/`, {
+        method: "POST",
+        body: formData
+      });
+      let data = await res.json();
+      chatBox.innerHTML += `<div class="bot">Bot: ${data.answer}</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+      document.getElementById("query").value = "";
+    }
+  </script>
+</body>
+</html>
