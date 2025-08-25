@@ -2,73 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PDF Chatbot</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; margin-bottom: 10px; }
-    .msg { margin: 5px 0; }
-    .user { font-weight: bold; color: blue; }
-    .bot { font-weight: bold; color: green; }
-  </style>
+  <title>PDF Q&A</title>
 </head>
 <body>
-  <h2>Chat with your PDF 📄🤖</h2>
-
-  <form id="upload-form">
-    <input type="file" id="pdfFile" accept="application/pdf" required>
-    <button type="submit">Upload PDF</button>
+  <h2>Upload PDF</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="file" />
+    <button type="submit">Upload</button>
   </form>
-  <p id="upload-status"></p>
+  <p id="uploadStatus"></p>
 
-  <div id="chat-box"></div>
-
-  <form id="chat-form">
-    <input type="text" id="query" placeholder="Ask something..." required>
-    <button type="submit">Send</button>
-  </form>
+  <h2>Chat with PDF</h2>
+  <input type="text" id="query" placeholder="Ask a question..." />
+  <button onclick="askQuestion()">Ask</button>
+  <p><strong>Answer:</strong> <span id="answer"></span></p>
 
   <script>
-    const API_BASE = "https://rag-q-a.onrender.com";
-
-    // Handle PDF upload
-    document.getElementById("upload-form").addEventListener("submit", async (e) => {
+    // Upload PDF
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fileInput = document.getElementById("pdfFile");
-      const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
-
-      const res = await fetch(`${API_BASE}/upload_pdf/`, {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-      document.getElementById("upload-status").innerText = data.message || "Upload complete!";
+      const formData = new FormData(e.target);
+      const response = await fetch("/upload_pdf/", { method: "POST", body: formData });
+      const data = await response.json();
+      document.getElementById("uploadStatus").innerText = data.message || data.error;
     });
 
-    // Handle chat
-    document.getElementById("chat-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
+    // Ask Question
+    async function askQuestion() {
       const query = document.getElementById("query").value;
-
-      // Show user message
-      const chatBox = document.getElementById("chat-box");
-      chatBox.innerHTML += `<div class="msg user">You: ${query}</div>`;
-
       const formData = new FormData();
       formData.append("query", query);
 
-      const res = await fetch(`${API_BASE}/chat/`, {
-        method: "POST",
-        body: formData
-      });
-      const data = await res.json();
-
-      // Show bot reply
-      chatBox.innerHTML += `<div class="msg bot">Bot: ${data.answer || data.error}</div>`;
-      chatBox.scrollTop = chatBox.scrollHeight;
-
-      document.getElementById("query").value = "";
-    });
+      const response = await fetch("/chat/", { method: "POST", body: formData });
+      const data = await response.json();
+      document.getElementById("answer").innerText = data.answer || data.error;
+    }
   </script>
 </body>
 </html>
