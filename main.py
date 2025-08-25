@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 load_dotenv()
 open_api_key=os.getenv("OPEN_API_KEY")
 app = FastAPI()
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 
 # directory to store uploaded files
 UPLOAD_DIR = "uploads"
@@ -18,6 +22,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # memory for storing FAISS index
 db = None
 
+@app.get("/")
+async def root():
+    return {"message": "PDF RAG API is running! Use /upload_pdf/ to upload and /chat/ to query."}
 
 @app.post("/upload_pdf/")
 async def upload_pdf(file: UploadFile):
