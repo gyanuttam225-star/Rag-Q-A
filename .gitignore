@@ -1,0 +1,10 @@
+# Ignore virtual env
+.venv/
+__pycache__/
+.idea/
+
+# Ignore uploads
+uploads/
+
+# Ignore secrets
+.env
