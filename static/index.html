@@ -1,41 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PDF Q&A</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Chat Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #4f46e5, #3b82f6, #06b6d4);
+      min-height: 100vh;
+    }
+    .chat-box {
+      height: 500px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+  </style>
 </head>
-<body>
-  <h2>Upload PDF</h2>
-  <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" name="file" />
-    <button type="submit">Upload</button>
-  </form>
-  <p id="uploadStatus"></p>
+<body class="flex flex-col items-center p-6 text-white">
+  <div class="w-full max-w-4xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-6">
+    <h1 class="text-3xl font-extrabold text-center mb-6 text-yellow-300">📚 PDF Chat Assistant</h1>
 
-  <h2>Chat with PDF</h2>
-  <input type="text" id="query" placeholder="Ask a question..." />
-  <button onclick="askQuestion()">Ask</button>
-  <p><strong>Answer:</strong> <span id="answer"></span></p>
+    <!-- Upload Section -->
+    <div class="bg-white/20 p-4 rounded-xl mb-6">
+      <form id="uploadForm" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center gap-4">
+        <input type="file" id="fileInput" name="file" accept="application/pdf"
+               class="block w-full text-sm text-gray-200 file:mr-4 file:py-2 file:px-4
+                      file:rounded-full file:border-0 file:text-sm file:font-semibold
+                      file:bg-yellow-400 file:text-black hover:file:bg-yellow-300" />
+        <button type="submit"
+                class="bg-green-500 hover:bg-green-400 text-white px-6 py-2 rounded-xl font-bold">
+          Upload PDF
+        </button>
+      </form>
+      <p id="uploadStatus" class="mt-2 text-sm"></p>
+    </div>
+
+    <!-- Chat Section -->
+    <div class="bg-white/20 p-4 rounded-xl">
+      <div id="chatBox" class="chat-box mb-4 p-4 bg-black/30 rounded-xl"></div>
+      <form id="chatForm" class="flex gap-4">
+        <input type="text" id="queryInput" placeholder="Ask something about your PDF..."
+               class="flex-grow p-3 rounded-xl text-black focus:outline-none" />
+        <button type="submit"
+                class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
 
   <script>
+    const uploadForm = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const chatForm = document.getElementById("chatForm");
+    const queryInput = document.getElementById("queryInput");
+    const chatBox = document.getElementById("chatBox");
+
+    const API_BASE = "https://rag-q-a.onrender.com"; // your backend URL
+
     // Upload PDF
-    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+    uploadForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const formData = new FormData(e.target);
-      const response = await fetch("/upload_pdf/", { method: "POST", body: formData });
-      const data = await response.json();
-      document.getElementById("uploadStatus").innerText = data.message || data.error;
+      const file = fileInput.files[0];
+      if (!file) {
+        uploadStatus.textContent = "⚠️ Please select a PDF file.";
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+
+      uploadStatus.textContent = "⏳ Uploading...";
+      const res = await fetch(`${API_BASE}/upload_pdf/`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      uploadStatus.textContent = data.message || "✅ Uploaded!";
     });
 
-    // Ask Question
-    async function askQuestion() {
-      const query = document.getElementById("query").value;
+    // Chat
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = queryInput.value.trim();
+      if (!query) return;
+
+      addMessage("user", query);
+      queryInput.value = "";
+
       const formData = new FormData();
       formData.append("query", query);
 
-      const response = await fetch("/chat/", { method: "POST", body: formData });
-      const data = await response.json();
-      document.getElementById("answer").innerText = data.answer || data.error;
+      addMessage("bot", "⏳ Thinking...");
+      const res = await fetch(`${API_BASE}/chat/`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      // Replace last bot msg with actual answer
+      chatBox.lastChild.remove();
+      addMessage("bot", data.answer || "⚠️ Something went wrong.");
+    });
+
+    // Chat UI helper
+    function addMessage(sender, text) {
+      const div = document.createElement("div");
+      div.className = sender === "user"
+        ? "text-right mb-2"
+        : "text-left mb-2";
+
+      div.innerHTML = sender === "user"
+        ? `<span class="bg-green-500 px-4 py-2 rounded-xl inline-block">${text}</span>`
+        : `<span class="bg-blue-500 px-4 py-2 rounded-xl inline-block">${text}</span>`;
+
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
   </script>
 </body>
